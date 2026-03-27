@@ -1,31 +1,33 @@
-# Streamlitライブラリをインポート
 import streamlit as st
+from PIL import Image
+import numpy as np
 
-# ページ設定（タブに表示されるタイトル、表示幅）
-st.set_page_config(page_title="タイトル", layout="wide")
+st.title("画像のRGB値取得アプリ")
 
-# タイトルを設定
-st.title('Streamlitのサンプルアプリ')
+# 画像アップロード
+uploaded_file = st.file_uploader("画像をアップロードしてください", type=["png", "jpg", "jpeg"])
 
-# テキスト入力ボックスを作成し、ユーザーからの入力を受け取る
-user_input = st.text_input('あなたの名前を入力してください')
+if uploaded_file is not None:
+    # 画像読み込み
+    image = Image.open(uploaded_file)
+    img_array = np.array(image)
 
-# ボタンを作成し、クリックされたらメッセージを表示
-if st.button('挨拶する'):
-    if user_input:  # 名前が入力されているかチェック
-        st.success(f'🌟 こんにちは、{user_input}さん! 🌟')  # メッセージをハイライト
-    else:
-        st.error('名前を入力してください。')  # エラーメッセージを表示
+    st.image(image, caption="アップロード画像", use_column_width=True)
 
-# スライダーを作成し、値を選択
-number = st.slider('好きな数字（10進数）を選んでください', 0, 100)
+    st.write("画像サイズ:", img_array.shape)
 
-# 補足メッセージ
-st.caption("十字キー（左右）でも調整できます。")
+    # 座標入力
+    st.subheader("座標を指定してRGB取得")
+    x = st.number_input("X座標（横）", min_value=0, max_value=img_array.shape[1]-1, value=0)
+    y = st.number_input("Y座標（縦）", min_value=0, max_value=img_array.shape[0]-1, value=0)
 
-# 選択した数字を表示
-st.write(f'あなたが選んだ数字は「{number}」です。')
+    # RGB取得
+    rgb = img_array[y, x]
 
-# 選択した数値を2進数に変換
-binary_representation = bin(number)[2:]  # 'bin'関数で2進数に変換し、先頭の'0b'を取り除く
-st.info(f'🔢 10進数の「{number}」を2進数で表現すると「{binary_representation}」になります。 🔢')  # 2進数の表示をハイライト
+    st.write(f"座標 ({x}, {y}) のRGB値:")
+    st.write(f"R: {rgb[0]}, G: {rgb[1]}, B: {rgb[2]}")
+
+    # 平均RGB
+    st.subheader("画像全体の平均RGB")
+    avg_rgb = img_array.mean(axis=(0, 1))
+    st.write(f"R: {avg_rgb[0]:.2f}, G: {avg_rgb[1]:.2f}, B: {avg_rgb[2]:.2f}")
