@@ -1,42 +1,51 @@
 import streamlit as st
-from PIL import Image
-import numpy as np
-from collections import Counter
 
-st.title("画像の色 Top10 抽出アプリ")
+st.title("RGBペア 共通抽出ツール")
 
-uploaded_file = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"])
+st.write("形式： 234,239,241 : 242,244,241 （改行で複数入力）")
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="アップロード画像", use_column_width=True)
+# 入力欄
+group1_text = st.text_area("グループ1", height=200)
+group2_text = st.text_area("グループ2", height=200)
 
-    img_array = np.array(image)
 
-    # 2次元 → 1次元（全ピクセル）
-    pixels = img_array.reshape(-1, 3)
+def normalize_pair(pair):
+    a, b = pair
+    return tuple(sorted([tuple(a), tuple(b)]))
 
-    st.write("解析中...")
 
-    # RGBをタプルに変換してカウント
-    pixel_list = [tuple(pixel) for pixel in pixels]
-    counter = Counter(pixel_list)
+def parse_pairs(text):
+    pairs = []
+    lines = text.strip().split("\n")
+    for line in lines:
+        if ":" in line:
+            left, right = line.split(":")
+            a = list(map(int, left.strip().split(",")))
+            b = list(map(int, right.strip().split(",")))
+            pairs.append((a, b))
+    return pairs
 
-    # 上位10件取得
-    top10 = counter.most_common(10)
 
-    st.subheader("出現頻度 Top10 色")
+def get_common_pairs(group1, group2):
+    set1 = set(normalize_pair(p) for p in group1)
+    set2 = set(normalize_pair(p) for p in group2)
+    return list(set1 & set2)
 
-    for i, (color, count) in enumerate(top10, 1):
-        r, g, b = color
 
-        # 色表示用のHTML
-        st.markdown(
-            f"""
-            **{i}位**  
-            RGB: {color}  
-            出現数: {count}  
-            <div style="width:100px;height:30px;background-color:rgb({r},{g},{b});"></div>
-            """,
-            unsafe_allow_html=True
-        )
+def format_pairs(pairs):
+    return "\n".join([f"{list(a)} : {list(b)}" for a, b in pairs])
+
+
+# 実行ボタン
+if st.button("共通ペアを抽出"):
+    group1 = parse_pairs(group1_text)
+    group2 = parse_pairs(group2_text)
+
+    common = get_common_pairs(group1, group2)
+
+    st.subheader("結果")
+
+    if common:
+        st.text(format_pairs(common))
+    else:
+        st.write("共通ペアはありません")
