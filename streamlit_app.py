@@ -1,28 +1,41 @@
 import streamlit as st
 from PIL import Image
-import easyocr
 import numpy as np
+import cv2
+from paddleocr import PaddleOCR
 
-st.title("画像から文字抽出（EasyOCR）")
+st.title("高精度OCR（無料版）")
 
-# アップロード
+@st.cache_resource
+def load_ocr():
+    return PaddleOCR(use_angle_cls=True, lang='japanese')
+
+ocr = load_ocr()
+
 uploaded_file = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
-    st.image(image, caption="アップロード画像", use_column_width=True)
+    st.image(image)
 
-    # OCR実行
-    with st.spinner("文字認識中..."):
-        reader = easyocr.Reader(['ja', 'en'])  # 日本語＋英語
-        result = reader.readtext(np.array(image))
+    img = np.array(image)
 
-    # 結果表示
-    st.subheader("抽出結果（テキストのみ）")
-    text_only = [res[1] for res in result]
-    st.write("\n".join(text_only))
+    # 🔥 前処理（超重要）
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5,5), 0)
+    _, thresh = cv2.threshold(blur, 150, 255, cv2.THRESH_BINARY)
 
-    # 詳細表示（位置・信頼度）
-    st.subheader("詳細（座標・信頼度）")
-    for bbox, text, prob in result:
-        st.write(f"文字: {text} / 信頼度: {prob:.2f}")
+    # 拡大（小さい文字対策）
+    thresh = cv2.resize(thresh, None, fx=2, fy=2)
+
+    # OCR
+    result = ocr.ocr(thresh, cls=True)
+
+    # テキスト抽出
+    texts = []
+    for line in result:
+        for word in line:
+            texts.append(word[1][0])
+
+    st.subheader("抽出結果")
+    st.write("\n".join(texts))
