@@ -19,18 +19,12 @@ if uploaded_file:
 
     img = np.array(image)
 
-    # 🔥 前処理（超重要）
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (5,5), 0)
-    _, thresh = cv2.threshold(blur, 150, 255, cv2.THRESH_BINARY)
+    # 🔥 前処理なし（Cloud安定版）
+    # 拡大だけやる
+    img = np.repeat(np.repeat(img, 2, axis=0), 2, axis=1)
 
-    # 拡大（小さい文字対策）
-    thresh = cv2.resize(thresh, None, fx=2, fy=2)
+    result = ocr.ocr(img, cls=True)
 
-    # OCR
-    result = ocr.ocr(thresh, cls=True)
-
-    # テキスト抽出
     texts = []
     for line in result:
         for word in line:
