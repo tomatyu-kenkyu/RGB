@@ -1,51 +1,28 @@
 import streamlit as st
+from PIL import Image
+import easyocr
+import numpy as np
 
-st.title("RGBペア 共通抽出ツール")
+st.title("画像から文字抽出（EasyOCR）")
 
-st.write("形式： 234,239,241 : 242,244,241 （改行で複数入力）")
+# アップロード
+uploaded_file = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"])
 
-# 入力欄
-group1_text = st.text_area("グループ1", height=200)
-group2_text = st.text_area("グループ2", height=200)
+if uploaded_file:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="アップロード画像", use_column_width=True)
 
+    # OCR実行
+    with st.spinner("文字認識中..."):
+        reader = easyocr.Reader(['ja', 'en'])  # 日本語＋英語
+        result = reader.readtext(np.array(image))
 
-def normalize_pair(pair):
-    a, b = pair
-    return tuple(sorted([tuple(a), tuple(b)]))
+    # 結果表示
+    st.subheader("抽出結果（テキストのみ）")
+    text_only = [res[1] for res in result]
+    st.write("\n".join(text_only))
 
-
-def parse_pairs(text):
-    pairs = []
-    lines = text.strip().split("\n")
-    for line in lines:
-        if ":" in line:
-            left, right = line.split(":")
-            a = list(map(int, left.strip().split(",")))
-            b = list(map(int, right.strip().split(",")))
-            pairs.append((a, b))
-    return pairs
-
-
-def get_common_pairs(group1, group2):
-    set1 = set(normalize_pair(p) for p in group1)
-    set2 = set(normalize_pair(p) for p in group2)
-    return list(set1 & set2)
-
-
-def format_pairs(pairs):
-    return "\n".join([f"{list(a)} : {list(b)}" for a, b in pairs])
-
-
-# 実行ボタン
-if st.button("共通ペアを抽出"):
-    group1 = parse_pairs(group1_text)
-    group2 = parse_pairs(group2_text)
-
-    common = get_common_pairs(group1, group2)
-
-    st.subheader("結果")
-
-    if common:
-        st.text(format_pairs(common))
-    else:
-        st.write("共通ペアはありません")
+    # 詳細表示（位置・信頼度）
+    st.subheader("詳細（座標・信頼度）")
+    for bbox, text, prob in result:
+        st.write(f"文字: {text} / 信頼度: {prob:.2f}")
