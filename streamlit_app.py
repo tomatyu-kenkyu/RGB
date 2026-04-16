@@ -3,7 +3,7 @@ from PIL import Image
 import numpy as np
 from paddleocr import PaddleOCR
 
-st.title("高精度OCR（無料版）")
+st.title("OCRアプリ")
 
 @st.cache_resource
 def load_ocr():
@@ -11,24 +11,13 @@ def load_ocr():
 
 ocr = load_ocr()
 
-uploaded_file = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"])
+uploaded_file = st.file_uploader("画像アップロード", type=["png","jpg","jpeg"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
-    st.image(image)
+    img_np = np.array(image)
 
-    img = np.array(image)
+    result = ocr.ocr(img_np)
 
-    # 🔥 前処理なし（Cloud安定版）
-    # 拡大だけやる
-    img = np.repeat(np.repeat(img, 2, axis=0), 2, axis=1)
-
-    result = ocr.ocr(img, cls=True)
-
-    texts = []
-    for line in result:
-        for word in line:
-            texts.append(word[1][0])
-
-    st.subheader("抽出結果")
-    st.write("\n".join(texts))
+    for line in result[0]:
+        st.write(line[1][0])
